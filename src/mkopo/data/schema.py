@@ -34,6 +34,8 @@ class Feature:
     risk_direction: int = 0
     protected: bool = False
     modelled: bool = True
+    #: Computed by :mod:`mkopo.features.engineering` rather than captured raw.
+    derived: bool = False
 
 
 FEATURES: tuple[Feature, ...] = (
@@ -98,6 +100,18 @@ FEATURES: tuple[Feature, ...] = (
     Feature("home_agent_concentration", "mobility", "numeric", "Share of agent activity at the single top agent", +1),
     Feature("travel_radius_km", "mobility", "numeric", "Radius covered by agent locations used", 0),
     Feature("contact_stability_score", "mobility", "numeric", "Stability of the top-10 counterparty set over 6m", +1),
+    # ---------------------------------------------------------------- derived
+    # Ratios a credit analyst would build by hand. They rarely add much to a
+    # gradient booster, which can learn interactions itself, but they carry most
+    # of the scorecard's explanatory power and they are what a customer can
+    # actually be told.
+    Feature("buffer_days", "derived", "numeric", "Wallet balance expressed as days of typical spending", +1, derived=True),
+    Feature("liquidity_stress_index", "derived", "numeric", "Empty-wallet days scaled by balance volatility", -1, derived=True),
+    Feature("betting_to_savings_ratio", "derived", "numeric", "Betting spend relative to savings held", -1, derived=True),
+    Feature("credit_hunger_index", "derived", "numeric", "Lender count and stacking velocity per prior loan", -1, derived=True),
+    Feature("obligation_discipline_index", "derived", "numeric", "Blend of bill, rent and repayment punctuality", +1, derived=True),
+    Feature("income_stability_index", "derived", "numeric", "Inflow rhythm reinforced by a payroll signature", +1, derived=True),
+    Feature("exposure_to_capacity_ratio", "derived", "numeric", "Outstanding credit against free cash flow", -1, derived=True),
 )
 
 FEATURES_BY_NAME: dict[str, Feature] = {f.name: f for f in FEATURES}
@@ -110,6 +124,9 @@ CATEGORICAL_FEATURES: tuple[str, ...] = tuple(
     f.name for f in FEATURES if f.modelled and f.dtype == "categorical"
 )
 PROTECTED_FEATURES: tuple[str, ...] = tuple(f.name for f in FEATURES if f.protected)
+DERIVED_FEATURES: tuple[str, ...] = tuple(f.name for f in FEATURES if f.derived)
+#: Columns the generator actually writes - everything else is computed.
+RAW_FEATURES: tuple[str, ...] = tuple(f.name for f in FEATURES if not f.derived)
 
 #: Features whose sign a reviewer would insist on; used for monotonic
 #: constraints in the GBM and asserted in the test suite.

@@ -7,7 +7,7 @@ builds a causal graph from livelihood segment to latent income stability and
 financial discipline, and from there to observable mobile-money behaviour. No real
 customer data is used anywhere in this repository.
 
-- **54** fields total, **51** of which the model is allowed to see
+- **61** fields total, **58** of which the model is allowed to see
 - **3** protected attributes, excluded from the model and audited in
   `mkopo.evaluation.fairness`
 - Risk direction records the sign a credit reviewer would insist on; it drives
@@ -112,6 +112,18 @@ customer data is used anywhere in this repository.
 | `home_agent_concentration` | numeric | yes | ↓ risk | Share of agent activity at the single top agent |
 | `travel_radius_km` | numeric | yes | — | Radius covered by agent locations used |
 | `contact_stability_score` | numeric | yes | ↓ risk | Stability of the top-10 counterparty set over 6m |
+
+## Derived
+
+| Field | Type | Modelled | Risk direction | Description |
+|---|---|---|---|---|
+| `buffer_days` | numeric | yes | ↓ risk | Wallet balance expressed as days of typical spending |
+| `liquidity_stress_index` | numeric | yes | ↑ risk | Empty-wallet days scaled by balance volatility |
+| `betting_to_savings_ratio` | numeric | yes | ↑ risk | Betting spend relative to savings held |
+| `credit_hunger_index` | numeric | yes | ↑ risk | Lender count and stacking velocity per prior loan |
+| `obligation_discipline_index` | numeric | yes | ↓ risk | Blend of bill, rent and repayment punctuality |
+| `income_stability_index` | numeric | yes | ↓ risk | Inflow rhythm reinforced by a payroll signature |
+| `exposure_to_capacity_ratio` | numeric | yes | ↑ risk | Outstanding credit against free cash flow |
 
 ## Targets and flags
 
