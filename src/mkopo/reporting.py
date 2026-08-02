@@ -19,7 +19,7 @@ from mkopo.config import REPORT_DIR
 log = logging.getLogger(__name__)
 
 
-def markdown_table(frame: pd.DataFrame, *, floatfmt: str = "{:,.4f}") -> str:
+def markdown_table(frame: pd.DataFrame, *, floatfmt: str = "{:,.4g}") -> str:
     """Render a DataFrame as a GitHub-flavoured markdown table."""
 
     def fmt(value: object) -> str:
