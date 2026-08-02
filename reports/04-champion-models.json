@@ -1,0 +1,106 @@
+{
+  "champion": "lightgbm",
+  "champion_params": {
+    "n_estimators": 700,
+    "learning_rate": 0.012112246815028536,
+    "num_leaves": 62,
+    "max_depth": 6,
+    "min_child_samples": 33,
+    "subsample": 0.7193077253775337,
+    "colsample_bytree": 0.9268381767504691,
+    "reg_alpha": 0.7093944132667422,
+    "reg_lambda": 0.6639034821756794
+  },
+  "gini_uplift_over_scorecard": -0.0049,
+  "champion_vs_scorecard_bootstrap": {
+    "gini_a": 0.6486,
+    "gini_b": 0.6535,
+    "difference": -0.0049,
+    "ci_low": -0.0128,
+    "ci_high": 0.0028,
+    "p_two_sided": 0.231,
+    "significant_at_95": false
+  },
+  "monotonic_constraint_cost_gini": 0.0011,
+  "comparison": [
+    {
+      "model": "logistic scorecard",
+      "valid_auc": 0.8135,
+      "oot_auc": 0.8268,
+      "oot_gini": 0.6535,
+      "oot_ks": 0.5039,
+      "oot_calibration_ratio": 0.96355
+    },
+    {
+      "model": "lightgbm",
+      "valid_auc": 0.8088,
+      "oot_auc": 0.8243,
+      "oot_gini": 0.6486,
+      "oot_ks": 0.4999,
+      "oot_calibration_ratio": 0.98
+    },
+    {
+      "model": "xgboost",
+      "valid_auc": 0.8137,
+      "oot_auc": 0.8248,
+      "oot_gini": 0.6497,
+      "oot_ks": 0.5002,
+      "oot_calibration_ratio": 1.0235
+    },
+    {
+      "model": "lightgbm_unconstrained",
+      "valid_auc": 0.8116,
+      "oot_auc": 0.8249,
+      "oot_gini": 0.6497,
+      "oot_ks": 0.4985,
+      "oot_calibration_ratio": 0.9134
+    }
+  ],
+  "champion_splits": [
+    {
+      "split": "train",
+      "auc": 0.9032,
+      "gini": 0.8064,
+      "ks": 0.6391,
+      "n": 19555,
+      "bad_rate": 0.0934,
+      "brier": 0.05859,
+      "log_loss": 0.20251,
+      "expected_bad_rate": 0.09355,
+      "observed_bad_rate": 0.09343,
+      "calibration_ratio": 1.00134,
+      "expected_calibration_error": 0.02351,
+      "rank_ordered": true
+    },
+    {
+      "split": "valid",
+      "auc": 0.8088,
+      "gini": 0.6176,
+      "ks": 0.4687,
+      "n": 4889,
+      "bad_rate": 0.0902,
+      "brier": 0.07097,
+      "log_loss": 0.24777,
+      "expected_bad_rate": 0.09009,
+      "observed_bad_rate": 0.0902,
+      "calibration_ratio": 0.99872,
+      "expected_calibration_error": 0.01194,
+      "rank_ordered": true
+    },
+    {
+      "split": "oot",
+      "auc": 0.8243,
+      "gini": 0.6486,
+      "ks": 0.4999,
+      "n": 6556,
+      "bad_rate": 0.1487,
+      "brier": 0.09971,
+      "log_loss": 0.32619,
+      "expected_bad_rate": 0.14574,
+      "observed_bad_rate": 0.14872,
+      "calibration_ratio": 0.98,
+      "expected_calibration_error": 0.01068,
+      "rank_ordered": true
+    }
+  ]
+}

@@ -24,6 +24,7 @@ data/interim/
 artifacts/
 mlruns/
 mlartifacts/
+mlflow.db
 optuna.db
 *.onnx
 *.joblib

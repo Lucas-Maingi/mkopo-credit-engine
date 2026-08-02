@@ -222,6 +222,82 @@ def characteristic_stability(
 
 
 # --------------------------------------------------------------------------------------
+# Comparing two models
+# --------------------------------------------------------------------------------------
+
+
+@dataclass
+class GiniDifference:
+    """Paired bootstrap comparison of two models on the same sample."""
+
+    gini_a: float
+    gini_b: float
+    difference: float
+    ci_low: float
+    ci_high: float
+    p_two_sided: float
+    n_resamples: int
+
+    @property
+    def significant(self) -> bool:
+        """True when the 95% interval excludes zero."""
+        return not (self.ci_low <= 0.0 <= self.ci_high)
+
+    def as_dict(self) -> dict:
+        return {
+            "gini_a": round(self.gini_a, 4),
+            "gini_b": round(self.gini_b, 4),
+            "difference": round(self.difference, 4),
+            "ci_low": round(self.ci_low, 4),
+            "ci_high": round(self.ci_high, 4),
+            "p_two_sided": round(self.p_two_sided, 4),
+            "significant_at_95": self.significant,
+        }
+
+
+def bootstrap_gini_difference(
+    y_true, score_a, score_b, *, n_resamples: int = 2000, seed: int = 42
+) -> GiniDifference:
+    """Paired bootstrap on the Gini gap between two models.
+
+    Two models scored on the same customers are not independent samples, so the
+    resampling has to be paired. Without this, a headline like "the booster beats
+    the scorecard by 0.005 Gini" is a statement about sampling noise dressed up
+    as a modelling result.
+    """
+    y_true = np.asarray(y_true, dtype=float)
+    a = np.asarray(score_a, dtype=float)
+    b = np.asarray(score_b, dtype=float)
+    rng = np.random.default_rng(seed)
+    n = len(y_true)
+
+    observed = gini(y_true, a) - gini(y_true, b)
+    draws = np.empty(n_resamples, dtype=float)
+    kept = 0
+    for _ in range(n_resamples):
+        idx = rng.integers(0, n, n)
+        y_sample = y_true[idx]
+        if y_sample.min() == y_sample.max():  # pragma: no cover - degenerate draw
+            continue
+        draws[kept] = gini(y_sample, a[idx]) - gini(y_sample, b[idx])
+        kept += 1
+    draws = draws[:kept]
+
+    low, high = np.percentile(draws, [2.5, 97.5])
+    # Proportion of resamples on the far side of zero, doubled.
+    p = 2.0 * min((draws <= 0).mean(), (draws >= 0).mean())
+    return GiniDifference(
+        gini_a=float(gini(y_true, a)),
+        gini_b=float(gini(y_true, b)),
+        difference=float(observed),
+        ci_low=float(low),
+        ci_high=float(high),
+        p_two_sided=float(min(p, 1.0)),
+        n_resamples=int(kept),
+    )
+
+
+# --------------------------------------------------------------------------------------
 # Bundled evaluation
 # --------------------------------------------------------------------------------------
 

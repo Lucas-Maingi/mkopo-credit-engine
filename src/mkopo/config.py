@@ -30,7 +30,9 @@ FIGURE_DIR = REPORT_DIR / "figures"
 for _d in (RAW_DIR, PROCESSED_DIR, MODEL_DIR, REPORT_DIR, FIGURE_DIR):
     _d.mkdir(parents=True, exist_ok=True)
 
-MLFLOW_TRACKING_URI = (PROJECT_ROOT / "mlruns").as_uri()
+#: MLflow's file store is in maintenance mode, so runs go to a local SQLite
+#: backend. `mlflow ui --backend-store-uri sqlite:///mlflow.db` browses them.
+MLFLOW_TRACKING_URI = f"sqlite:///{(PROJECT_ROOT / 'mlflow.db').as_posix()}"
 MLFLOW_EXPERIMENT = "mkopo-credit-engine"
 
 RANDOM_SEED = 42
