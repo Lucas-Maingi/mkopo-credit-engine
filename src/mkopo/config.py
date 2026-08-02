@@ -1,0 +1,165 @@
+"""Central configuration: paths, scorecard constants and lending economics.
+
+Everything that a credit-risk reviewer would want to challenge lives here rather
+than being scattered as magic numbers through the codebase.
+"""
+
+from __future__ import annotations
+
+from dataclasses import dataclass, field
+from pathlib import Path
+
+# --------------------------------------------------------------------------------------
+# Paths
+# --------------------------------------------------------------------------------------
+
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
+
+DATA_DIR = PROJECT_ROOT / "data"
+RAW_DIR = DATA_DIR / "raw"
+PROCESSED_DIR = DATA_DIR / "processed"
+ARTIFACT_DIR = PROJECT_ROOT / "artifacts"
+MODEL_DIR = ARTIFACT_DIR / "models"
+REPORT_DIR = ARTIFACT_DIR / "reports"
+FIGURE_DIR = ARTIFACT_DIR / "figures"
+
+for _d in (RAW_DIR, PROCESSED_DIR, MODEL_DIR, REPORT_DIR, FIGURE_DIR):
+    _d.mkdir(parents=True, exist_ok=True)
+
+MLFLOW_TRACKING_URI = (PROJECT_ROOT / "mlruns").as_uri()
+MLFLOW_EXPERIMENT = "mkopo-credit-engine"
+
+RANDOM_SEED = 42
+
+# --------------------------------------------------------------------------------------
+# Population / simulation
+# --------------------------------------------------------------------------------------
+
+N_CUSTOMERS = 50_000
+OBSERVATION_WINDOW_DAYS = 180  # behaviour observed before the decision point
+PERFORMANCE_WINDOW_DAYS = 90  # outcome observed after disbursement
+THIN_FILE_DAYS = 90  # < this much tenure => thin-file segment
+
+#: Approval rate of the legacy rules engine that generated the training book.
+#: Everything below this line is a *reject* with no observed repayment -> the
+#: selection bias that :mod:`mkopo.models.reject_inference` corrects for.
+LEGACY_APPROVAL_RATE = 0.62
+
+# --------------------------------------------------------------------------------------
+# Target definition
+# --------------------------------------------------------------------------------------
+
+#: A "bad" is 30+ days past due within the performance window. This is the
+#: standard digital-credit definition; anything looser inflates AUC and hides risk.
+BAD_DEFINITION = "dpd30_within_90d"
+
+# --------------------------------------------------------------------------------------
+# Scorecard scaling (points-to-double-the-odds)
+# --------------------------------------------------------------------------------------
+
+
+@dataclass(frozen=True)
+class ScorecardScale:
+    """Maps calibrated probability of default to an integer credit score.
+
+    ``score = offset - factor * ln(odds_bad)`` where ``odds_bad = p / (1 - p)``.
+    """
+
+    base_score: int = 600
+    base_odds_good_to_bad: float = 30.0  # 30:1 good:bad at ``base_score``
+    pdo: int = 40  # points to double the odds
+    min_score: int = 300
+    max_score: int = 850
+
+    @property
+    def factor(self) -> float:
+        import math
+
+        return self.pdo / math.log(2)
+
+    @property
+    def offset(self) -> float:
+        import math
+
+        return self.base_score - self.factor * math.log(self.base_odds_good_to_bad)
+
+
+SCORECARD_SCALE = ScorecardScale()
+
+#: Risk bands used by the API, dashboard and policy layer.
+RISK_BANDS: tuple[tuple[str, int, int], ...] = (
+    ("A", 740, 850),
+    ("B", 680, 739),
+    ("C", 620, 679),
+    ("D", 560, 619),
+    ("E", 300, 559),
+)
+
+# --------------------------------------------------------------------------------------
+# Lending economics - used to pick the cut-off by expected profit, not by F1
+# --------------------------------------------------------------------------------------
+
+
+@dataclass(frozen=True)
+class LendingEconomics:
+    """Unit economics of a 30-day mobile micro-loan, in KES."""
+
+    average_principal: float = 3_000.0
+    facility_fee_rate: float = 0.075  # one-off fee charged on disbursement
+    rollover_rate: float = 0.30  # share of goods that roll over once (extra fee)
+    loss_given_default: float = 0.82  # after collections recovery
+    cost_of_funds_rate: float = 0.012  # per loan cycle
+    servicing_cost: float = 12.0  # per disbursed loan
+    #: Cost of a scoring call that never becomes a loan is ~0, but a *declined
+    #: good* is real lost margin - reported as opportunity cost, not P&L.
+
+    @property
+    def revenue_per_good(self) -> float:
+        fee = self.average_principal * self.facility_fee_rate
+        return fee * (1 + self.rollover_rate) - (
+            self.average_principal * self.cost_of_funds_rate
+        ) - self.servicing_cost
+
+    @property
+    def loss_per_bad(self) -> float:
+        return self.average_principal * self.loss_given_default + self.servicing_cost
+
+
+ECONOMICS = LendingEconomics()
+
+# --------------------------------------------------------------------------------------
+# Fairness / governance
+# --------------------------------------------------------------------------------------
+
+#: Attributes that must never enter the model but must always be audited.
+PROTECTED_ATTRIBUTES: tuple[str, ...] = ("gender", "age_band", "region")
+
+#: Four-fifths rule threshold (US EEOC convention, widely used as a screen).
+DISPARATE_IMPACT_FLOOR = 0.80
+
+#: Equal-opportunity difference above this is escalated in the fairness report.
+EQUAL_OPPORTUNITY_TOLERANCE = 0.05
+
+# --------------------------------------------------------------------------------------
+# Monitoring
+# --------------------------------------------------------------------------------------
+
+#: Population Stability Index thresholds - the industry-standard traffic light.
+PSI_GREEN = 0.10
+PSI_AMBER = 0.25
+
+#: Serving latency objective for the ONNX runtime path.
+LATENCY_SLO_P99_MS = 50.0
+
+
+@dataclass(frozen=True)
+class Settings:
+    """Convenience bundle so callers can inject a single object."""
+
+    seed: int = RANDOM_SEED
+    n_customers: int = N_CUSTOMERS
+    scale: ScorecardScale = field(default_factory=lambda: SCORECARD_SCALE)
+    economics: LendingEconomics = field(default_factory=lambda: ECONOMICS)
+
+
+SETTINGS = Settings()
